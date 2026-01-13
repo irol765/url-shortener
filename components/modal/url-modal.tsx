@@ -53,16 +53,33 @@ const UrlModal = () => {
     try {
       setLoading(true);
 
-      // Get URL title
-      const urlResponse = await axios.get(
-        `https://api.allorigins.win/get?url=${encodeURIComponent(values.url)}`
-      );
-      const matches = urlResponse.data.contents.match(/<title>(.*?)<\/title>/);
-      const title = encodeURI(matches?.[1] ?? values.url);
+      // --- 修改开始：稳健的标题获取逻辑 ---
+      
+      // 1. 默认标题就是 URL 本身（兜底策略）
+      let title = values.url;
 
+      try {
+        // 2. 尝试获取标题，设置 2 秒超时，避免一直转圈
+        const urlResponse = await axios.get(
+          `https://api.allorigins.win/get?url=${encodeURIComponent(values.url)}`,
+          { timeout: 2000 } 
+        );
+        // 只有当成功获取且匹配到 title 标签时才覆盖
+        const matches = urlResponse.data.contents.match(/<title>(.*?)<\/title>/);
+        if (matches?.[1]) {
+          title = encodeURI(matches[1]);
+        }
+      } catch (err) {
+        // 3. 如果获取标题失败（CORS、超时等），直接忽略，只在控制台打印警告
+        console.warn('自动获取标题失败，将使用 URL 作为默认标题:', err);
+      }
+
+      // --- 修改结束 ---
+
+      // 4. 发送创建请求
       const response = await axios.post('/api/link', values, {
         headers: {
-          'long-url-title': title
+          'long-url-title': title // 使用我们处理好的 title
         }
       });
 
@@ -79,17 +96,22 @@ const UrlModal = () => {
         });
       }
     } catch (error: any) {
-      if (error.response.data.error === 'Please enter different keyword.') {
+      // --- 这里也加了防护，防止再次崩溃 ---
+      console.error(error);
+      
+      // 安全地检查 error.response 是否存在
+      const errorMessage = error.response?.data?.error;
+
+      if (errorMessage === 'Please enter different keyword.') {
         form.setError('keyword', {
           type: 'manual',
-          message: error.response.data.error
+          message: errorMessage
         });
       } else {
-        console.log(error);
         toast({
           variant: 'destructive',
           title: 'Uh oh! Something went wrong.',
-          description: 'There was a problem with your request.'
+          description: errorMessage || 'There was a problem with your request.'
         });
       }
     } finally {
