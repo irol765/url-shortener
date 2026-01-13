@@ -27,12 +27,12 @@ interface EditFormProps {
 }
 
 const formSchema = z.object({
-  title: z.string().min(3, { message: 'Please enter 3 or more characters.' }),
+  title: z.string().min(2, { message: 'Please enter 2 or more characters.' }),
   url: z.string().toLowerCase().url({ message: 'Please enter a valid URL.' }),
   keyword: z
     .string()
     .toLowerCase()
-    .min(3, { message: 'Please enter 3 or more characters.' })
+    .min(2, { message: 'Please enter 2 or more characters.' })
     .refine((string) => isSlug(string), {
       message: 'Please enter valid slug.'
     })
