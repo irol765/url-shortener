@@ -29,7 +29,7 @@ const formSchema = z.object({
     .string()
     .toLowerCase()
     .min(2, { message: 'Please enter 2 or more characters.' })
-    .refine((string) => isSlug(string), {
+    .regex(/^[a-z0-9_-]+$/, {
       message: 'Please enter valid slug.'
     })
 });
