@@ -34,7 +34,7 @@ const formSchema = z.object({
     .toLowerCase()
     .min(2, { message: 'Please enter 2 or more characters.' })
     .regex(/^[a-z0-9_-]+$/, {
-      message: 'Please enter valid slug.'
+      message: 'Only letters, numbers, hyphens (-) and underscores (_) are allowed.'
     })
 });
 
