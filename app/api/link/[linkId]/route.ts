@@ -11,6 +11,7 @@ export async function PATCH(
     const body = await req.json();
     const { title, keyword, url } = body;
 
+    // 1. 认证检查
     if (!userId) {
       return NextResponse.json(
         { success: false, error: 'Unauthenticated.' },
@@ -18,6 +19,7 @@ export async function PATCH(
       );
     }
 
+    // 2. 参数基础校验
     if (!url) {
       return NextResponse.json(
         { success: false, error: 'URL is required.' },
@@ -46,6 +48,7 @@ export async function PATCH(
       );
     }
 
+    // 3. 查找链接
     const linkFound = await prismadb.link.findUnique({
       where: {
         id: params.linkId
@@ -55,10 +58,19 @@ export async function PATCH(
     if (!linkFound) {
       return NextResponse.json(
         { success: false, error: 'Link not found.' },
-        { status: 400 }
+        { status: 404 }
       );
     }
 
+    // 4. 【关键修复】所有权检查 (防止越权修改)
+    if (linkFound.userId !== userId) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: You do not own this link.' },
+        { status: 403 }
+      );
+    }
+
+    // 5. 检查 Keyword 是否重复 (排除当前链接自己)
     const currentLink = await prismadb.link.findUnique({
       where: {
         keyword,
@@ -75,6 +87,7 @@ export async function PATCH(
       );
     }
 
+    // 6. 执行更新
     const link = await prismadb.link.update({
       where: {
         id: params.linkId
@@ -103,6 +116,7 @@ export async function DELETE(
   try {
     const { userId } = auth();
 
+    // 1. 认证检查
     if (!userId) {
       return NextResponse.json(
         { success: false, error: 'Unauthenticated.' },
@@ -117,6 +131,7 @@ export async function DELETE(
       );
     }
 
+    // 2. 查找链接
     const linkFound = await prismadb.link.findUnique({
       where: {
         id: params.linkId
@@ -126,10 +141,19 @@ export async function DELETE(
     if (!linkFound) {
       return NextResponse.json(
         { success: false, error: 'Link not found.' },
-        { status: 400 }
+        { status: 404 }
       );
     }
 
+    // 3. 【关键修复】所有权检查 (防止越权删除)
+    if (linkFound.userId !== userId) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized: You do not own this link.' },
+        { status: 403 }
+      );
+    }
+
+    // 4. 执行删除
     const link = await prismadb.link.delete({
       where: {
         id: params.linkId
