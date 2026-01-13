@@ -28,7 +28,7 @@ const formSchema = z.object({
   keyword: z
     .string()
     .toLowerCase()
-    .min(3, { message: 'Please enter 3 or more characters.' })
+    .min(2, { message: 'Please enter 2 or more characters.' })
     .refine((string) => isSlug(string), {
       message: 'Please enter valid slug.'
     })
